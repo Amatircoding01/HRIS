@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HRIS KOBE 2026</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+    <?!= include('Css'); ?>
+</head>
+<body>
+    <div id="login-wrapper" style="display: none;"> 
+        <?!= include('View_Login'); ?> 
+    </div>
+
+    <div id="app-wrapper" style="display: none;">
+        <div class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <i class="fa-solid fa-building-user me-2"></i><span>HRIS KOBE</span>
+            </div>
+            <ul class="sidebar-menu">
+                <li class="active" onclick="navigateTo('Dashboard')">
+                    <div><i class="fa-solid fa-chart-pie me-2" style="width: 25px;"></i><span>Dashboard</span></div>
+                </li>
+                
+                <li>
+                    <div class="d-flex justify-content-between align-items-center w-100" data-bs-toggle="collapse" data-bs-target="#menuKaryawan" style="cursor: pointer;">
+                        <span><i class="fa-solid fa-users me-2" style="width: 25px;"></i> Data Karyawan</span>
+                        <i class="fa-solid fa-chevron-down fs-xs"></i>
+                    </div>
+                    <div class="collapse show" id="menuKaryawan">
+                        <ul class="submenu">
+                            <li onclick="filterTable('Semua')">Semua Karyawan</li>
+                            <li onclick="filterTable('Tetap')">Karyawan Tetap</li>
+                            <li onclick="filterTable('Kontrak')">Karyawan Kontrak</li>
+                            <li>
+                                <div class="d-flex justify-content-between align-items-center w-100" data-bs-toggle="collapse" data-bs-target="#subMenuMekanik" style="cursor: pointer;">
+                                    <span>Mekanik</span> <i class="fa-solid fa-chevron-down fs-xs"></i>
+                                </div>
+                                <div class="collapse" id="subMenuMekanik">
+                                    <ul class="submenu-inner" style="list-style: none; padding-left: 10px;">
+                                        <li onclick="filterTable('Mekanik Service')">Mekanik Service</li>
+                                        <li onclick="filterTable('Mekanik Refurbish')">Mekanik Refurbish</li>
+                                        <li>
+                                            <div class="d-flex justify-content-between align-items-center w-100" data-bs-toggle="collapse" data-bs-target="#subMenuRental" style="cursor: pointer;">
+                                                <span>Mekanik Rental</span> <i class="fa-solid fa-chevron-down fs-xs"></i>
+                                            </div>
+                                            <div class="collapse" id="subMenuRental">
+                                                <ul class="submenu-inner-plus" style="list-style: none; padding-left: 10px;">
+                                                    <li onclick="filterTable('FMC')">Mekanik FMC</li>
+                                                    <li onclick="filterTable('Satelit')">Mekanik Satelit</li>
+                                                </ul>
+                                            </div>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                </li>
+
+                <li onclick="navigateTo('Absensi')">
+                    <div><i class="fa-solid fa-clock me-2" style="width: 25px;"></i><span>Absensi & Cuti</span></div>
+                </li>
+
+                <li>
+                    <div class="d-flex justify-content-between align-items-center w-100" data-bs-toggle="collapse" data-bs-target="#menuAsuransi" style="cursor: pointer;">
+                        <span><i class="fa-solid fa-shield-heart me-2" style="width: 25px;"></i> Jaminan & Asuransi</span>
+                        <i class="fa-solid fa-chevron-down fs-xs"></i>
+                    </div>
+                    <div class="collapse" id="menuAsuransi">
+                        <ul class="submenu">
+                            <li onclick="showAlert('Menu BPJS Kesehatan')">BPJS Kesehatan</li>
+                            <li onclick="showAlert('Menu BPJS TKU')">BPJS TKU</li>
+                            <li onclick="showAlert('Menu Asuransi')">Asuransi</li>
+                        </ul>
+                    </div>
+                </li>
+
+                <li>
+                    <div class="d-flex justify-content-between align-items-center w-100" data-bs-toggle="collapse" data-bs-target="#menuKlaim" style="cursor: pointer;">
+                        <span><i class="fa-solid fa-file-medical me-2" style="width: 25px;"></i> Klaim Karyawan</span>
+                        <i class="fa-solid fa-chevron-down fs-xs"></i>
+                    </div>
+                    <div class="collapse" id="menuKlaim">
+                        <ul class="submenu">
+                            <li onclick="openKlaimPersalinanForm()">Klaim Persalinan</li>
+                            <li onclick="openKlaimForm('Pemeriksaan Kehamilan')">Klaim Pemeriksaan Kehamilan</li>
+                            <li onclick="openKacamataForm()">Klaim Kacamata</li>
+                            <li onclick="openKlaimGigiForm()">Klaim Gigi</li>
+                            <li onclick="openKlaimKBForm()">Klaim KB</li>
+                            <li onclick="openPrintMenu()">Print Laporan</li>
+                        </ul>
+                    </div>
+                </li>
+
+                <li>
+                    <div class="d-flex justify-content-between align-items-center w-100" data-bs-toggle="collapse" data-bs-target="#menuKompensasi" style="cursor: pointer;">
+                        <span><i class="fa-solid fa-hand-holding-dollar me-2" style="width: 25px;"></i> Komp & Tunjang</span>
+                        <i class="fa-solid fa-chevron-down fs-xs"></i>
+                    </div>
+                    <div class="collapse" id="menuKompensasi">
+                        <ul class="submenu">
+                            <li onclick="showAlert('Loan Karyawan')">Loan Karyawan</li>
+                            <li onclick="showAlert('Suka Duka')">Suka Duka</li>
+                        </ul>
+                    </div>
+                </li>
+                
+                <li onclick="loadMonitoringKlaim()">
+                    <div><i class="fa-solid fa-desktop me-2" style="width: 25px;"></i><span>Monitoring Klaim</span></div>
+                </li>
+            </ul>
+        </div>
+
+        <div class="main-content" id="main-content">
+            <nav class="topbar d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center">
+                    <button class="btn btn-light d-md-none me-3" id="toggleSidebar"><i class="fa-solid fa-bars"></i></button>
+                    <h4 class="mb-0 text-dark fw-bold" id="page-title">Dashboard</h4>
+                </div>
+                <div class="user-profile d-flex align-items-center">
+                    <div class="me-3 text-end d-none d-md-block">
+                        <div class="fw-bold fs-6">Super Admin</div>
+                        <div class="text-muted" style="font-size: 0.8rem;">HR Department</div>
+                    </div>
+                    <img src="https://ui-avatars.com/api/?name=Admin+KOBE&background=10b981&color=fff" class="rounded-circle shadow-sm" width="40">
+                    <button class="btn btn-sm btn-outline-danger ms-3 rounded-circle" onclick="logout()" title="Logout" style="width: 35px; height: 35px;"><i class="fa-solid fa-power-off"></i></button>
+                </div>
+            </nav>
+
+            <div class="content-area mt-4" id="app-content">
+                <div class="text-center mt-5" id="loading-screen">
+                    <div class="spinner-border text-primary" role="status"></div>
+                    <p class="mt-2 text-muted">Memuat Sistem HRIS...</p>
+                </div>
+                
+                <?!= include('View_Dashboard'); ?>
+                <?!= include('View_Karyawan'); ?>
+                <?!= include('View_Klaim'); ?>
+                <?!= include('View_Klaim_Kacamata'); ?>
+                <?!= include('View_Klaim_Gigi'); ?>
+                <?!= include('View_Klaim_Persalinan'); ?>
+                <?!= include('View_Klaim_KB'); ?>
+                <?!= include('View_Monitoring_Klaim'); ?>
+                <?!= include('View_Print'); ?>
+                <?!= include('View_Absensi'); ?>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <?!= include('Js'); ?>
+</body>
+</html>
