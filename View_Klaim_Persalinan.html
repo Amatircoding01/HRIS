@@ -1,0 +1,87 @@
+<div class="modal fade" id="formKlaimPersalinanModal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title"><i class="fa-solid fa-baby me-2"></i> Form Pengajuan Klaim Persalinan</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <form id="mainFormKlaimPersalinan" onsubmit="processSubmitKlaimPersalinan(event)">
+                    
+                    <div class="row mb-4 bg-light p-3 rounded border">
+                        <div class="col-md-8">
+                            <label class="form-label fw-bold">Masukkan NRPP Karyawan</label>
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="pers-nrpp" required placeholder="Contoh: KBE-1001">
+                                <button type="button" class="btn btn-dark" onclick="cekDataKaryawanPersalinan()"><i class="fa-solid fa-magnifying-glass me-1"></i> Cek Data</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="area-data-persalinan" style="display: none;">
+                        <h6 class="fw-bold border-bottom pb-2 mb-3 text-primary">Informasi Karyawan</h6>
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-4"><label class="form-label small text-muted">Nama Lengkap</label><input type="text" id="pers-nama" class="form-control bg-light" readonly></div>
+                            <div class="col-md-4"><label class="form-label small text-muted">Departement</label><input type="text" id="pers-dept" class="form-control bg-light" readonly></div>
+                            <div class="col-md-4"><label class="form-label small text-muted">Golongan</label><input type="text" id="pers-golongan" class="form-control bg-light fw-bold text-primary" readonly></div>
+                        </div>
+
+                        <h6 class="fw-bold border-bottom pb-2 mb-3 text-primary">Detail Persalinan & Plafon</h6>
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Jenis Persalinan</label>
+                                <select class="form-select border-primary" id="pers-jenis" required onchange="hitungPersalinan()">
+                                    <option value="">-- Pilih Jenis --</option>
+                                    <option value="Normal">Normal</option>
+                                    <option value="Komplikasi">Komplikasi</option>
+                                    <option value="Cesar">Cesar</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Tanggal Persalinan/Kwitansi</label>
+                                <input type="date" id="pers-tanggal" class="form-control" required>
+                            </div>
+                        </div>
+
+                        <div class="p-3 border rounded bg-light mb-3">
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label text-primary fw-bold">Plafon Maksimal (Berdasarkan Golongan)</label>
+                                    <input type="text" id="pers-plafon-text" class="form-control fw-bold" readonly placeholder="Pilih Jenis Persalinan Dulu">
+                                    <input type="hidden" id="pers-plafon-value" value="0">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label text-dark fw-bold">Nominal Kwitansi RS/Klinik</label>
+                                    <input type="number" id="pers-kwitansi" class="form-control" required onkeyup="hitungPersalinan()" placeholder="Ketik nominal tagihan">
+                                </div>
+                            </div>
+                            <hr>
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label text-success fw-bold">Nominal Disetujui Perusahaan</label>
+                                    <input type="number" id="pers-disetujui" class="form-control bg-success text-white fw-bold" readonly>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label text-danger fw-bold">Kelebihan (Ditanggung Pribadi)</label>
+                                    <input type="text" id="pers-pribadi-text" class="form-control bg-danger text-white fw-bold" readonly value="Rp 0">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row g-3">
+                            <div class="col-md-12">
+                                <label class="form-label">Keterangan RS / Klinik</label>
+                                <textarea id="pers-keterangan" class="form-control" rows="2" required placeholder="Contoh: RS Mitra Keluarga"></textarea>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-4 text-end">
+                            <button type="button" class="btn btn-secondary me-2" data-bs-dismiss="modal">Batal</button>
+                            <button type="submit" class="btn btn-primary"><i class="fa-solid fa-paper-plane me-1"></i> Submit Klaim Persalinan</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
