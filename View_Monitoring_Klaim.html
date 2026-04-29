@@ -1,0 +1,56 @@
+<div id="view-MonitoringKlaim" class="page-view" style="display: none;">
+    <div class="glass-card">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h5 class="mb-0 fw-bold"><i class="fa-solid fa-list-check me-2"></i> Monitoring Klaim Karyawan</h5>
+            <div class="badge bg-primary">Database Klaim Real-time</div>
+        </div>
+        
+        <div class="table-responsive">
+            <table id="tableMonitoringKlaim" class="table table-hover w-100">
+                <thead>
+                    <tr>
+                        <th>Tgl Pengajuan</th>
+                        <th>NRPP</th>
+                        <th>Nama</th>
+                        <th>Jenis Klaim</th>
+                        <th>Nominal</th>
+                        <th>Status</th>
+                        <th class="text-center">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalProsesApproval" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-dark text-white">
+                <h5 class="modal-title">Proses Approval Klaim</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <input type="hidden" id="appr-id">
+                <input type="hidden" id="appr-sheet">
+                
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Tentukan Keputusan:</label>
+                    <select id="appr-status" class="form-select border-primary">
+                        <option value="Disetujui">Setujui Klaim (Disetujui)</option>
+                        <option value="Ditolak">Tolak Klaim (Ditolak)</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Keterangan HR:</label>
+                    <textarea id="appr-keterangan" class="form-control" rows="3" placeholder="Contoh: Dokumen lengkap atau Alasan penolakan..."></textarea>
+                </div>
+                <div class="text-end">
+                    <button type="button" class="btn btn-secondary me-2" data-bs-dismiss="modal">Batal</button>
+                    <button type="button" class="btn btn-primary" onclick="simpanKeputusanHR()">Simpan Keputusan</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
