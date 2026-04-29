@@ -1,0 +1,53 @@
+<div class="modal fade" id="formKlaimModal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="klaimTitle"><i class="fa-solid fa-file-medical me-2"></i> Form Pengajuan Klaim</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <form id="mainFormKlaim" onsubmit="processSubmitKlaim(event)">
+                    
+                    <div class="row mb-4 bg-light p-3 rounded border">
+                        <div class="col-md-8">
+                            <label class="form-label fw-bold">Masukkan NRPP Karyawan</label>
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="klaim-nrpp" required placeholder="Contoh: KBE-1001">
+                                <button type="button" class="btn btn-dark" onclick="cekDataKaryawanKlaim()"><i class="fa-solid fa-magnifying-glass me-1"></i> Cek Data</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="area-data-klaim" style="display: none;">
+                        <h6 class="fw-bold border-bottom pb-2 mb-3 text-primary">Informasi Karyawan & Saldo</h6>
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-4"><label class="form-label small text-muted">Nama Lengkap</label><input type="text" id="klaim-nama" class="form-control bg-light" readonly></div>
+                            <div class="col-md-4"><label class="form-label small text-muted">Departement</label><input type="text" id="klaim-dept" class="form-control bg-light" readonly></div>
+                            <div class="col-md-4"><label class="form-label small text-muted">Golongan</label><input type="text" id="klaim-golongan" class="form-control bg-light fw-bold text-primary" readonly></div>
+                            
+                            <div class="col-md-4"><label class="form-label small text-muted">Plafon Maksimal</label><input type="text" id="klaim-plafon-text" class="form-control bg-light" readonly></div>
+                            <div class="col-md-4"><label class="form-label small text-muted">Telah Dipakai</label><input type="text" id="klaim-terpakai-text" class="form-control bg-light text-danger fw-bold" readonly></div>
+                            <div class="col-md-4"><label class="form-label small text-muted">Sisa Saldo</label><input type="text" id="klaim-sisa-text" class="form-control bg-warning fw-bold" readonly></div>
+                            
+                            <input type="hidden" id="klaim-sisa-value"> </div>
+
+                        <div id="area-input-pengajuan">
+                            <h6 class="fw-bold border-bottom pb-2 mb-3 text-primary">Detail Pengajuan</h6>
+                            <div class="row g-3">
+                                <div class="col-md-6"><label class="form-label">Tanggal Kwitansi/Pemeriksaan</label><input type="date" id="klaim-tanggal" class="form-control" required></div>
+                                <div class="col-md-6"><label class="form-label">Nominal Kwitansi (Rp)</label><input type="number" id="klaim-kwitansi" class="form-control" required onkeyup="hitungPlafonDisetujui()" placeholder="Ketik angka tanpa titik"></div>
+                                <div class="col-md-12"><label class="form-label">Nominal Disetujui (Sesuai Sisa Saldo)</label><input type="number" id="klaim-disetujui" class="form-control bg-success text-white fw-bold" readonly></div>
+                                <div class="col-md-12"><label class="form-label">Keterangan Medis / Diagnosa</label><textarea id="klaim-keterangan" class="form-control" rows="2" required></textarea></div>
+                            </div>
+                            
+                            <div class="mt-4 text-end">
+                                <button type="button" class="btn btn-secondary me-2" data-bs-dismiss="modal">Batal</button>
+                                <button type="submit" class="btn btn-primary" id="btnSubmitKlaim"><i class="fa-solid fa-paper-plane me-1"></i> Submit Klaim</button>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
