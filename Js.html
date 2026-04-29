@@ -1,0 +1,811 @@
+<script>
+    let globalDataKaryawan = []; 
+    let dataTableInstance = null; 
+    let dataTableMonitoring = null; 
+    let statusKacamata = { lensaTersedia: true, frameTersedia: true };
+    let myCharts = []; 
+
+    $(document).ready(function() { 
+        checkAuth(); 
+    });
+
+    function checkAuth() { 
+        const isLoggedIn = sessionStorage.getItem('kobe_logged_in'); 
+        if(isLoggedIn === 'true') { showApp(); } else { showLogin(); } 
+    }
+
+    function showLogin() { 
+        $('#app-wrapper').hide(); 
+        $('#loginForm').trigger('reset'); 
+        $('#login-wrapper').fadeIn(500); 
+    }
+
+    function showApp() { 
+        $('#login-wrapper').hide(); 
+        $('#app-wrapper').fadeIn(500); 
+        navigateTo('Dashboard'); 
+        loadKaryawanData(); 
+        $('#toggleSidebar').off('click').on('click', function() { $('.sidebar').toggleClass('show'); }); 
+    }
+
+    function processLogin(e) { 
+        e.preventDefault(); 
+        Swal.fire({ title: 'Memeriksa Akses...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+        google.script.run.withSuccessHandler(resJSON => { 
+            const res = JSON.parse(resJSON); 
+            if(res.status === 'success') { 
+                sessionStorage.setItem('kobe_logged_in', 'true'); 
+                Swal.fire({ icon: 'success', title: 'Berhasil', timer: 1000, showConfirmButton: false }); 
+                setTimeout(() => showApp(), 1000); 
+            } else { 
+                Swal.fire('Gagal', res.message, 'error'); 
+            } 
+        }).verifyLogin($('#login-username').val(), $('#login-password').val()); 
+    }
+
+    function logout() { 
+        sessionStorage.removeItem('kobe_logged_in'); 
+        checkAuth(); 
+    }
+
+    function navigateTo(pageName) {
+        $('.page-view').hide(); 
+        $('#view-' + pageName).fadeIn(300);
+        
+        let title = pageName;
+        if(pageName === 'Karyawan') title = 'Data Karyawan';
+        else if(pageName === 'Absensi') title = 'Modul Absensi & Cuti';
+        else if(pageName === 'MonitoringKlaim') title = 'Monitoring & Approval Klaim';
+        
+        $('#page-title').text(title); 
+        if ($(window).width() < 768) $('.sidebar').removeClass('show');
+    }
+
+    function filterTable(kategori) {
+        navigateTo('Karyawan'); 
+        let dataFilter = globalDataKaryawan;
+        
+        if (kategori === 'Tetap') {
+            dataFilter = globalDataKaryawan.filter(k => k.Status && k.Status.toLowerCase().includes('tetap'));
+        } else if (kategori === 'Kontrak') {
+            dataFilter = globalDataKaryawan.filter(k => k.Status && k.Status.toLowerCase().includes('kontrak'));
+        } else if (kategori === 'Mekanik Service') {
+            dataFilter = globalDataKaryawan.filter(k => k.Section && k.Section.toLowerCase().includes('service'));
+        } else if (kategori === 'Mekanik Refurbish') {
+            dataFilter = globalDataKaryawan.filter(k => k.Section && k.Section.toLowerCase().includes('refurbish'));
+        } else if (kategori === 'FMC') {
+            dataFilter = globalDataKaryawan.filter(k => k.Section && k.Section.toLowerCase().includes('fmc'));
+        } else if (kategori === 'Satelit') {
+            dataFilter = globalDataKaryawan.filter(k => k.Section && k.Section.toLowerCase().includes('satelit'));
+        }
+        
+        $('#page-title').text('Data Karyawan: ' + kategori); 
+        renderTableCustom(dataFilter);
+    }
+
+    // =========================================================
+    // MODUL DASHBOARD & GRAFIK (TERMASUK PERHITUNGAN CABANG)
+    // =========================================================
+    function renderDashboardStats() { 
+        // 1. Angka Kotak Utama
+        $('#stat-total').text(globalDataKaryawan.length); 
+        $('#stat-tetap').text(globalDataKaryawan.filter(k => k.Status && k.Status.toLowerCase().includes('tetap')).length); 
+        $('#stat-kontrak').text(globalDataKaryawan.filter(k => k.Status && k.Status.toLowerCase().includes('kontrak')).length); 
+        $('#stat-service').text(globalDataKaryawan.filter(k => k.Section && k.Section.toLowerCase().includes('service')).length); 
+        $('#stat-rental').text(globalDataKaryawan.filter(k => k.Section && (k.Section.toLowerCase().includes('fmc') || k.Section.toLowerCase().includes('satelit'))).length); 
+        $('#stat-refurbish').text(globalDataKaryawan.filter(k => k.Section && k.Section.toLowerCase().includes('refurbish')).length);
+
+        // 2. Angka Kotak Lemah Abang (Umum)
+        let dataLA = globalDataKaryawan.filter(k => {
+            let loc = (k.Lokasi || k.Wilayah || k.Penempatan || k.Area || k.Cabang || '').toLowerCase();
+            return loc.includes('lemah abang') || loc.includes('la');
+        });
+        $('#stat-la-total').text(dataLA.length);
+        $('#stat-la-tetap').text(dataLA.filter(k => k.Status && k.Status.toLowerCase().includes('tetap')).length);
+        $('#stat-la-kontrak').text(dataLA.filter(k => k.Status && k.Status.toLowerCase().includes('kontrak')).length);
+
+        // 3. OLAH DATA MEKANIK PER CABANG
+        const listCabang = [
+            { id: 'la', keys: ['lemah abang', 'la'] },
+            { id: 'surabaya', keys: ['surabaya'] },
+            { id: 'semarang', keys: ['semarang'] },
+            { id: 'medan', keys: ['medan'] },
+            { id: 'cilegon', keys: ['cilegon'] },
+            { id: 'makasar', keys: ['makasar', 'makassar'] }
+        ];
+
+        listCabang.forEach(cabang => {
+            // Filter karyawan di cabang tersebut
+            let pKaryawanCabang = globalDataKaryawan.filter(k => {
+                let loc = (k.Lokasi || k.Wilayah || k.Penempatan || k.Area || k.Cabang || '').toLowerCase();
+                return cabang.keys.some(key => loc.includes(key));
+            });
+
+            // Hitung mekanik di dalam cabang tersebut
+            let cService = pKaryawanCabang.filter(k => k.Section && k.Section.toLowerCase().includes('service')).length;
+            let cRental = pKaryawanCabang.filter(k => k.Section && (k.Section.toLowerCase().includes('fmc') || k.Section.toLowerCase().includes('satelit'))).length;
+            let cRefurbish = pKaryawanCabang.filter(k => k.Section && k.Section.toLowerCase().includes('refurbish')).length;
+
+            // Cetak ke HTML
+            $(`#stat-mek-${cabang.id}-service`).text(cService);
+            $(`#stat-mek-${cabang.id}-rental`).text(cRental);
+            $(`#stat-mek-${cabang.id}-refurbish`).text(cRefurbish);
+        });
+
+        // 4. Olah Data Grafik Analitik
+        let countDept = {};
+        let countGender = { 'Pria': 0, 'Wanita': 0 };
+        let countGen = { 'Gen Z (>1996)': 0, 'Milenial (1981-1996)': 0, 'Gen X (<1981)': 0 };
+
+        globalDataKaryawan.forEach(k => {
+            let dept = k.Departement || 'Lain-lain';
+            if (dept.trim() === '') dept = 'Lain-lain';
+            countDept[dept] = (countDept[dept] || 0) + 1;
+
+            let jk = (k.Jenis_Kelamin || k.Gender || k.JK || k.Kelamin || '').toLowerCase();
+            if(jk.startsWith('l') || jk.includes('pria') || jk === 'm') countGender['Pria']++;
+            else if(jk.startsWith('p') || jk.includes('wanita') || jk === 'f' || jk.includes('perempuan')) countGender['Wanita']++;
+
+            let tgl = k.Tanggal_Lahir || k.Tgl_Lahir || k.Lahir || k.Tahun_Lahir;
+            let tahunLahir = 0;
+            if (tgl) { tahunLahir = new Date(tgl).getFullYear(); } 
+            else if (k.Usia) { tahunLahir = new Date().getFullYear() - parseInt(k.Usia); }
+
+            if (tahunLahir > 1996) countGen['Gen Z (>1996)']++;
+            else if (tahunLahir >= 1981 && tahunLahir <= 1996) countGen['Milenial (1981-1996)']++;
+            else if (tahunLahir > 0 && tahunLahir < 1981) countGen['Gen X (<1981)']++;
+        });
+
+        drawCharts(countGender, countDept, countGen);
+    }
+
+    function drawCharts(genderData, deptData, genData) {
+        myCharts.forEach(c => c.destroy());
+        myCharts = [];
+
+        const colors = ['#0d6efd', '#198754', '#ffc107', '#dc3545', '#0dcaf0', '#6f42c1', '#fd7e14', '#20c997', '#e83e8c'];
+
+        const ctxGender = document.getElementById('genderChart').getContext('2d');
+        myCharts.push(new Chart(ctxGender, {
+            type: 'pie',
+            data: { labels: Object.keys(genderData), datasets: [{ data: Object.values(genderData), backgroundColor: ['#0d6efd', '#dc3545'] }] },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
+        }));
+
+        const ctxDept = document.getElementById('deptChart').getContext('2d');
+        myCharts.push(new Chart(ctxDept, {
+            type: 'doughnut',
+            data: { labels: Object.keys(deptData), datasets: [{ data: Object.values(deptData), backgroundColor: colors }] },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } } 
+        }));
+
+        const ctxGen = document.getElementById('genChart').getContext('2d');
+        myCharts.push(new Chart(ctxGen, {
+            type: 'bar',
+            data: { labels: Object.keys(genData), datasets: [{ label: 'Jumlah', data: Object.values(genData), backgroundColor: '#198754', borderRadius: 5 }] },
+            options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } }, plugins: { legend: { display: false } } }
+        }));
+    }
+
+    // =========================================================
+    // MODUL KLAIM PEMERIKSAAN KEHAMILAN
+    // =========================================================
+    function openKlaimForm(jenisKlaim) { 
+        $('#mainFormKlaim')[0].reset(); 
+        $('#area-data-klaim').hide(); 
+        $('#area-input-pengajuan').show(); 
+        $('#klaimTitle').html(`<i class="fa-solid fa-file-medical me-2"></i> Form Klaim: ${jenisKlaim}`); 
+        $('#formKlaimModal').modal('show'); 
+    }
+
+    function cekDataKaryawanKlaim() { 
+        const nrpp = $('#klaim-nrpp').val().trim(); 
+        if(!nrpp) return; 
+        Swal.fire({ title: 'Mengecek Saldo...', didOpen: () => Swal.showLoading() }); 
+        google.script.run.withSuccessHandler(resJSON => { 
+            const d = JSON.parse(resJSON).data; 
+            $('#klaim-nama').val(d.Nama); 
+            $('#klaim-dept').val(d.Departement); 
+            $('#klaim-golongan').val(d.Golongan); 
+            let m = 0;
+            if(d.Golongan.includes('VII')) m = 6000000; 
+            else if(d.Golongan.includes('VI')) m = 5000000; 
+            else if(d.Golongan.includes('V')) m = 4000000; 
+            else if(d.Golongan.includes('IV')) m = 3000000; 
+            else m = 2000000; 
+            let s = m - d.TotalTerpakai; 
+            if (s < 0) s = 0;
+            $('#klaim-plafon-text').val("Rp " + m.toLocaleString('id-ID')); 
+            $('#klaim-sisa-text').val("Rp " + s.toLocaleString('id-ID')); 
+            $('#klaim-sisa-value').val(s); 
+            $('#area-data-klaim').fadeIn(); 
+            if (s <= 0) { 
+                Swal.fire({ icon: 'error', title: 'Saldo Habis' }); 
+                $('#area-input-pengajuan').hide(); 
+            } else { 
+                $('#area-input-pengajuan').show(); 
+                Swal.close(); 
+            } 
+        }).getKaryawanForKlaim(nrpp); 
+    }
+
+    function hitungPlafonDisetujui() { 
+        const sisa = parseInt($('#klaim-sisa-value').val()) || 0; 
+        const kwitansi = parseInt($('#klaim-kwitansi').val()) || 0; 
+        if (kwitansi > sisa) { 
+            $('#klaim-disetujui').val(kwitansi).addClass('bg-danger').removeClass('bg-success'); 
+        } else { 
+            $('#klaim-disetujui').val(kwitansi).removeClass('bg-danger').addClass('bg-success'); 
+        } 
+    }
+
+    function processSubmitKlaim(e) { 
+        e.preventDefault(); 
+        const sisa = parseInt($('#klaim-sisa-value').val()) || 0; 
+        const kwitansi = parseInt($('#klaim-kwitansi').val()) || 0; 
+        if (kwitansi > sisa) return Swal.fire('Ditolak', 'Melebihi plafon', 'error'); 
+        
+        const formData = {
+            NRPP: $('#klaim-nrpp').val(), 
+            Nama: $('#klaim-nama').val(), 
+            Departement: $('#klaim-dept').val(), 
+            Tanggal_Pengajuan: $('#klaim-tanggal').val(), 
+            Nominal_Kwitansi: kwitansi, 
+            Nominal_Disetujui: kwitansi, 
+            Keterangan_Medis: $('#klaim-keterangan').val()
+        };
+        Swal.fire({ title: 'Menyimpan Klaim...', didOpen: () => Swal.showLoading() });
+        google.script.run.withSuccessHandler(r => { 
+            Swal.fire('Sukses', 'Klaim disimpan', 'success'); 
+            $('#formKlaimModal').modal('hide'); 
+        }).submitKlaim(formData); 
+    }
+
+    // =========================================================
+    // MODUL KLAIM KACAMATA
+    // =========================================================
+    function openKacamataForm() { 
+        $('#mainFormKacamata')[0].reset(); 
+        $('#area-data-kcm').hide(); 
+        $('#box-input-lensa').hide();
+        $('#box-input-frame').hide();
+        $('#formKlaimKacamata').modal('show'); 
+    }
+
+    function cekDataKaryawanKacamata() { 
+        const nrpp = $('#kcm-nrpp').val().trim(); 
+        if(!nrpp) return; 
+        Swal.fire({title: 'Mengecek...', didOpen: () => Swal.showLoading()}); 
+        google.script.run.withSuccessHandler(resJSON => { 
+            const res = JSON.parse(resJSON);
+            const d = res.data; 
+            $('#kcm-nama').text(d.Nama); 
+            $('#kcm-dept').text(d.Departement); 
+            $('#kcm-gol').text(d.Golongan); 
+            statusKacamata.lensaTersedia = d.LensaTersedia; 
+            statusKacamata.frameTersedia = d.FrameTersedia; 
+            
+            if(d.LensaTersedia) {
+                $('#kcm-status-lensa').text(d.InfoLensa).removeClass('text-danger').addClass('text-success');
+            } else {
+                $('#kcm-status-lensa').text(d.InfoLensa).removeClass('text-success').addClass('text-danger');
+            }
+            if(d.FrameTersedia) {
+                $('#kcm-status-frame').text(d.InfoFrame).removeClass('text-danger').addClass('text-success');
+            } else {
+                $('#kcm-status-frame').text(d.InfoFrame).removeClass('text-success').addClass('text-danger');
+            }
+            $('#area-data-kcm').fadeIn(); 
+            Swal.close(); 
+        }).getKaryawanForKlaimKacamata(nrpp); 
+    }
+
+    function gantiJenisKacamata() { 
+        const j = $('#kcm-jenis').val(); 
+        $('#box-input-lensa').toggle(j.includes("Lensa")); 
+        $('#box-input-frame').toggle(j.includes("Frame")); 
+    }
+
+    function hitungKacamata() { 
+        const l = parseInt($('#kcm-kwi-lensa').val()) || 0; 
+        const f = parseInt($('#kcm-kwi-frame').val()) || 0; 
+        $('#kcm-setuju-lensa').val(Math.min(l, 350000)); 
+        $('#kcm-setuju-frame').val(Math.min(f, 500000)); 
+    }
+
+    function processSubmitKacamata(e) { 
+        e.preventDefault(); 
+        const j = $('#kcm-jenis').val(); 
+        const namaPasien = $('#kcm-pasien').val();
+        
+        if(j.includes("Lensa") && !statusKacamata.lensaTersedia) return Swal.fire('Tolak','Lensa belum 1 thn','error'); 
+        if(j.includes("Frame") && !statusKacamata.frameTersedia) return Swal.fire('Tolak','Frame belum 2 thn','error');
+        
+        const submitItems = []; 
+        const base = { 
+            NRPP: $('#kcm-nrpp').val(), 
+            Nama: $('#kcm-nama').text(), 
+            Departement: $('#kcm-dept').text(), 
+            Tanggal_Pengajuan: $('#kcm-tanggal').val(), 
+            Keterangan_Medis: "Pasien: " + namaPasien + " | Ket: " + $('#kcm-keterangan').val() 
+        }; 
+        
+        if(j.includes("Lensa")) {
+            submitItems.push({...base, Jenis_Klaim: "Lensa Saja", Nominal_Kwitansi: $('#kcm-kwi-lensa').val(), Nominal_Disetujui: $('#kcm-setuju-lensa').val()});
+        }
+        if(j.includes("Frame")) {
+            submitItems.push({...base, Jenis_Klaim: "Frame Saja", Nominal_Kwitansi: $('#kcm-kwi-frame').val(), Nominal_Disetujui: $('#kcm-setuju-frame').val()});
+        }
+        
+        Swal.fire({ title: 'Menyimpan Klaim...', didOpen: () => Swal.showLoading() });
+        google.script.run.withSuccessHandler(r => { 
+            Swal.fire('Sukses', 'Klaim kacamata disimpan', 'success'); 
+            $('#formKlaimKacamata').modal('hide'); 
+        }).submitKlaimKacamata(submitItems); 
+    }
+
+    // =========================================================
+    // MODUL KLAIM GIGI
+    // =========================================================
+    function openKlaimGigiForm() { 
+        $('#mainFormKlaimGigi')[0].reset(); 
+        $('#area-data-gigi').hide(); 
+        $('#formKlaimGigiModal').modal('show'); 
+    }
+
+    function cekDataKaryawanGigi() { 
+        const nrpp = $('#gigi-nrpp').val(); 
+        Swal.fire({title: 'Mengecek...', didOpen: () => Swal.showLoading()});
+        google.script.run.withSuccessHandler(resJSON => { 
+            const d = JSON.parse(resJSON).data; 
+            $('#gigi-nama').val(d.Nama); 
+            $('#gigi-dept').val(d.Departement); 
+            $('#gigi-golongan').val(d.Golongan); 
+            let m = 800000; 
+            if(d.Golongan.includes('VII')) m = 3000000; 
+            else if(d.Golongan.includes('VI') || d.Golongan.includes('V')) m = 1000000; 
+            let s = m - d.TotalTerpakai; 
+            $('#gigi-sisa-value').val(s); 
+            $('#gigi-sisa-text').val("Rp " + s.toLocaleString('id-ID')); 
+            $('#area-data-gigi').fadeIn(); 
+            Swal.close();
+        }).getKaryawanForKlaimGigi(nrpp); 
+    }
+
+    function hitungPlafonDisetujuiGigi() { 
+        const s = parseInt($('#gigi-sisa-value').val()); 
+        const k = parseInt($('#gigi-kwitansi').val()); 
+        $('#gigi-disetujui').val(Math.min(s, k)); 
+    }
+
+    function processSubmitKlaimGigi(e) { 
+        e.preventDefault(); 
+        const s = parseInt($('#gigi-sisa-value').val()); 
+        const k = parseInt($('#gigi-kwitansi').val()); 
+        if (k > s) return Swal.fire('Ditolak','Melebihi plafon','error'); 
+        
+        const formData = { 
+            NRPP: $('#gigi-nrpp').val(), 
+            Nama: $('#gigi-nama').val(), 
+            Departement: $('#gigi-dept').val(), 
+            Tanggal_Pengajuan: $('#gigi-tanggal').val(), 
+            Nominal_Kwitansi: k, 
+            Nominal_Disetujui: $('#gigi-disetujui').val(), 
+            Keterangan_Medis: "Pasien: " + $('#gigi-pasien').val() + " | Ket: " + $('#gigi-keterangan').val() 
+        }; 
+        
+        Swal.fire({ title: 'Menyimpan Klaim...', didOpen: () => Swal.showLoading() });
+        google.script.run.withSuccessHandler(r => { 
+            Swal.fire('Sukses', 'Klaim gigi disimpan', 'success'); 
+            $('#formKlaimGigiModal').modal('hide'); 
+        }).submitKlaimGigi(formData); 
+    }
+
+    // =========================================================
+    // MODUL KLAIM PERSALINAN
+    // =========================================================
+    function openKlaimPersalinanForm() { 
+        $('#mainFormKlaimPersalinan')[0].reset(); 
+        $('#area-data-persalinan').hide(); 
+        $('#formKlaimPersalinanModal').modal('show'); 
+    }
+
+    function cekDataKaryawanPersalinan() { 
+        const nrpp = $('#pers-nrpp').val(); 
+        Swal.fire({title: 'Mengecek...', didOpen: () => Swal.showLoading()});
+        google.script.run.withSuccessHandler(resJSON => { 
+            const d = JSON.parse(resJSON).data; 
+            $('#pers-nama').val(d.Nama); 
+            $('#pers-dept').val(d.Departement); 
+            $('#pers-golongan').val(d.Golongan); 
+            $('#area-data-persalinan').fadeIn(); 
+            Swal.close();
+        }).getKaryawanForKlaimPersalinan(nrpp); 
+    }
+
+    function hitungPersalinan() { 
+        const j = $('#pers-jenis').val(); 
+        const g = $('#pers-golongan').val().toUpperCase(); 
+        let p = 3000000; 
+        if(j === "Normal") { 
+            if(g.includes('VII')) p = 12000000; 
+            else if(g.includes('VI')) p = 9000000; 
+            else if(g.includes('V')) p = 6000000; 
+            else if(g.includes('IV')) p = 4000000; 
+        } else if(j === "Cesar") { 
+            if(g.includes('VII')) p = 24000000; 
+            else if(g.includes('VI')) p = 16000000; 
+            else if(g.includes('V')) p = 12000000; 
+            else if(g.includes('IV')) p = 8000000; 
+            else p = 6000000; 
+        } else if(j === "Komplikasi") { 
+            if(g.includes('VII') || g.includes('VI')) p = 0; 
+            else if(g.includes('V')) p = 5100000; 
+            else if(g.includes('IV')) p = 3400000; 
+            else p = 2550000; 
+        } 
+        $('#pers-plafon-text').val(p === 0 ? "TIDAK TERCOVER" : "Rp " + p.toLocaleString('id-ID')); 
+        $('#pers-plafon-value').val(p); 
+        const k = parseInt($('#pers-kwitansi').val()) || 0; 
+        $('#pers-disetujui').val(Math.min(k, p)); 
+        $('#pers-pribadi-text').val("Rp " + Math.max(0, k - p).toLocaleString('id-ID')); 
+    }
+
+    function processSubmitKlaimPersalinan(e) { 
+        e.preventDefault(); 
+        if($('#pers-plafon-value').val() == 0) return Swal.fire('Ditolak', 'Tidak tercover', 'error'); 
+        
+        const formData = { 
+            NRPP: $('#pers-nrpp').val(), 
+            Nama: $('#pers-nama').val(), 
+            Departement: $('#pers-dept').val(), 
+            Tanggal_Pengajuan: $('#pers-tanggal').val(), 
+            Jenis_Persalinan: $('#pers-jenis').val(), 
+            Nominal_Kwitansi: $('#pers-kwitansi').val(), 
+            Nominal_Disetujui: $('#pers-disetujui').val(), 
+            Keterangan_Medis: $('#pers-keterangan').val() 
+        }; 
+        Swal.fire({ title: 'Menyimpan Klaim...', didOpen: () => Swal.showLoading() });
+        google.script.run.withSuccessHandler(r => { 
+            Swal.fire('Sukses', 'Klaim persalinan disimpan', 'success'); 
+            $('#formKlaimPersalinanModal').modal('hide'); 
+        }).submitKlaimPersalinan(formData); 
+    }
+
+    // =========================================================
+    // MODUL KLAIM KB
+    // =========================================================
+    function openKlaimKBForm() { 
+        $('#mainFormKlaimKB')[0].reset(); 
+        $('#area-data-kb').hide(); 
+        $('#formKlaimKBModal').modal('show'); 
+    }
+
+    function cekDataKaryawanKB() { 
+        const nrpp = $('#kb-nrpp').val(); 
+        Swal.fire({title: 'Mengecek...', didOpen: () => Swal.showLoading()});
+        google.script.run.withSuccessHandler(resJSON => { 
+            const d = JSON.parse(resJSON).data; 
+            $('#kb-nama').val(d.Nama); 
+            $('#kb-dept').val(d.Departement); 
+            $('#kb-golongan').val(d.Golongan); 
+            $('#area-data-kb').fadeIn(); 
+            Swal.close();
+        }).getKaryawanForKlaimPersalinan(nrpp); 
+    }
+
+    function hitungKlaimKB() { 
+        const k = parseInt($('#kb-kwitansi').val()) || 0; 
+        $('#kb-disetujui').val(Math.min(k, 350000)); 
+        $('#kb-pribadi-text').val("Rp " + Math.max(0, k - 350000).toLocaleString('id-ID')); 
+    }
+
+    function processSubmitKlaimKB(e) { 
+        e.preventDefault(); 
+        const formData = { 
+            NRPP: $('#kb-nrpp').val(), 
+            Nama: $('#kb-nama').val(), 
+            Departement: $('#kb-dept').val(), 
+            Tanggal_Pengajuan: $('#kb-tanggal').val(), 
+            Jenis_KB: $('#kb-jenis').val(), 
+            Nominal_Kwitansi: $('#kb-kwitansi').val(), 
+            Nominal_Disetujui: $('#kb-disetujui').val(), 
+            Keterangan_Medis: $('#kb-keterangan').val() 
+        }; 
+        Swal.fire({ title: 'Menyimpan Klaim...', didOpen: () => Swal.showLoading() });
+        google.script.run.withSuccessHandler(r => { 
+            Swal.fire('Sukses', 'Klaim KB disimpan', 'success'); 
+            $('#formKlaimKBModal').modal('hide'); 
+        }).submitKlaimKB(formData); 
+    }
+
+    // =========================================================
+    // MONITORING & PRINT
+    // =========================================================
+    function loadMonitoringKlaim() { 
+        navigateTo('MonitoringKlaim'); 
+        Swal.fire({title: 'Memuat Daftar Klaim...', didOpen: () => Swal.showLoading()});
+        google.script.run.withSuccessHandler(resJSON => { 
+            const r = JSON.parse(resJSON); 
+            if(dataTableMonitoring) dataTableMonitoring.destroy(); 
+            const tb = $('#tableMonitoringKlaim tbody').empty(); 
+            r.data.forEach(d => { 
+                let b = d.Status_Approval.includes('Disetujui') ? 'bg-success' : (d.Status_Approval.includes('Ditolak') ? 'bg-danger' : 'bg-warning'); 
+                let tgl = d.Tanggal_Pengajuan;
+                if (tgl && tgl.includes('T')) tgl = tgl.split('T')[0];
+                tb.append(`<tr><td>${tgl || '-'}</td><td class="fw-bold">${d.NRPP}</td><td>${d.Nama_Karyawan}</td><td>${d.Jenis_Klaim}</td><td>Rp ${parseFloat(d.Nominal_Disetujui).toLocaleString('id-ID')}</td><td><span class="badge ${b}">${d.Status_Approval}</span></td><td><button class="btn btn-sm btn-dark" onclick="bukaProsesApproval('${d.ID_Klaim}','${d.sheetSource}')">Proses</button></td></tr>`); 
+            }); 
+            dataTableMonitoring = $('#tableMonitoringKlaim').DataTable({responsive: true}); 
+            Swal.close();
+        }).getSemuaKlaim(); 
+    }
+
+    function bukaProsesApproval(id, s) { 
+        $('#appr-id').val(id); 
+        $('#appr-sheet').val(s); 
+        $('#modalProsesApproval').modal('show'); 
+    }
+
+    function simpanKeputusanHR() { 
+        Swal.fire({ title: 'Menyimpan...', didOpen: () => Swal.showLoading() });
+        google.script.run.withSuccessHandler(r => { 
+            Swal.fire('Sukses', 'Keputusan disimpan', 'success'); 
+            $('#modalProsesApproval').modal('hide'); 
+            loadMonitoringKlaim(); 
+        }).updateStatusKlaim($('#appr-id').val(), $('#appr-sheet').val(), $('#appr-status').val(), $('#appr-keterangan').val()); 
+    }
+    
+    /**
+ * Fungsi untuk Cetak Laporan PDF langsung Download
+ */
+/**
+ * FUNGSI CETAK PDF LANGSUNG DOWNLOAD
+ * Lokasi: Js.html
+ */
+/**
+ * FUNGSI DOWNLOAD PDF OTOMATIS
+ * Lokasi: Js.html
+ */
+/**
+ * FUNGSI DOWNLOAD PDF LANGSUNG (ANTI-PRINT-DIALOG)
+ * Lokasi: Js.html
+ */
+function openPrintMenu() {
+    // 1. Mencegah fungsi bawaan browser (jika ada)
+    if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+    }
+
+    Swal.fire({
+        title: 'Mempersiapkan PDF...',
+        text: 'File akan terunduh otomatis secara langsung.',
+        icon: 'info',
+        allowOutsideClick: false,
+        showConfirmButton: false,
+        didOpen: () => {
+            Swal.showLoading();
+        }
+    });
+
+    // 2. Memanggil fungsi di Main.gs
+    google.script.run
+        .withSuccessHandler(function(response) {
+            Swal.close();
+            if (response.status === 'success') {
+                // Logika Download File tanpa Preview
+                const byteCharacters = atob(response.base64Data);
+                const byteNumbers = new Array(byteCharacters.length);
+                for (let i = 0; i < byteCharacters.length; i++) {
+                    byteNumbers[i] = byteCharacters.charCodeAt(i);
+                }
+                const byteArray = new Uint8Array(byteNumbers);
+                const blob = new Blob([byteArray], {type: 'application/pdf'});
+                
+                const fileURL = window.URL.createObjectURL(blob);
+                const downloadLink = document.createElement('a');
+                downloadLink.href = fileURL;
+                downloadLink.download = response.fileName || 'Laporan_Absensi_KOBE.pdf';
+                
+                document.body.appendChild(downloadLink);
+                downloadLink.click();
+                document.body.removeChild(downloadLink);
+                window.URL.revokeObjectURL(fileURL);
+
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Berhasil diunduh',
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+            } else {
+                Swal.fire('Gagal', response.message, 'error');
+            }
+        })
+        .withFailureHandler(function(err) {
+            Swal.close();
+            Swal.fire('Error Server', 'Pastikan fungsi generateAbsensiPDF ada di Main.gs', 'error');
+        })
+        .generateAbsensiPDF();
+}
+
+    function executePrint(format) { 
+        const sumber = $('#print-sumber').val(); 
+        if(!sumber) return Swal.fire('Peringatan','Pilih sumber data','warning');
+        Swal.fire({ title: 'Menarik Data...', didOpen: () => Swal.showLoading() });
+        
+        google.script.run.withSuccessHandler(resJSON => { 
+            const dArray = JSON.parse(resJSON).data; 
+            if(format === 'excel') { 
+                const ws = XLSX.utils.aoa_to_sheet(dArray); 
+                const wb = XLSX.utils.book_new(); 
+                XLSX.utils.book_append_sheet(wb, ws, "Laporan"); 
+                XLSX.writeFile(wb, `Laporan_${new Date().getTime()}.xlsx`); 
+                Swal.close();
+            } else { 
+                let w = window.open(); 
+                w.document.write(`
+                    <style> table { width:100%; border-collapse: collapse; font-family: sans-serif; font-size:12px; } th, td { border: 1px solid #000; padding: 5px; } th { background-color: #eee; } </style>
+                    <h2>Laporan: ${sumber}</h2>
+                    <table>${dArray.map(r=>`<tr>${r.map(c=>`<td>${c}</td>`).join('')}</tr>`).join('')}</table>
+                `); 
+                w.document.close();
+                setTimeout(() => { w.print(); }, 500);
+                Swal.close();
+            } 
+        }).getDataForLaporan(sumber); 
+    }
+
+    // =========================================================
+    // DATA KARYAWAN & TABEL
+    // =========================================================
+    function loadKaryawanData() { 
+        google.script.run.withSuccessHandler(resJSON => { 
+            globalDataKaryawan = JSON.parse(resJSON).data; 
+            renderTableCustom(globalDataKaryawan); 
+            renderDashboardStats(); 
+            $('#loading-screen').hide(); 
+        }).getAllKaryawan(); 
+    }
+    
+    function renderTableCustom(arr) { 
+        if (dataTableInstance) dataTableInstance.destroy(); 
+        const tb = $('#karyawanTable tbody').empty(); 
+        arr.forEach(d => { 
+            let statusClass = 'bg-secondary'; 
+            if(d.Status && d.Status.toLowerCase().includes('tetap')) statusClass = 'bg-primary'; 
+            else if(d.Status && d.Status.toLowerCase().includes('kontrak')) statusClass = 'bg-warning text-dark';
+            
+            tb.append(`<tr><td class="fw-bold">${d.NRPP}</td><td>${d.Nama}</td><td>${d.Departement}</td><td>${d.JABATAN}</td><td><span class="badge ${statusClass}">${d.Status}</span></td><td><button class="btn btn-sm btn-info text-white" onclick="viewDetail('${d.NRPP}')"><i class="fa-solid fa-eye"></i></button></td></tr>`); 
+        }); 
+        dataTableInstance = $('#karyawanTable').DataTable({ responsive: true }); 
+    }
+    
+    function viewDetail(nrpp) { 
+        const k = globalDataKaryawan.find(x => x.NRPP == nrpp); 
+        if (!k) return; 
+        const c = $('#detail-grid-container').empty(); 
+        Object.keys(k).forEach(key => { 
+            c.append(`<div class="detail-item shadow-sm"><div class="detail-label">${key.replace(/_/g, ' ')}</div><div class="detail-value">${k[key] || '-'}</div></div>`); 
+        }); 
+        $('#detailModal').modal('show'); 
+    }
+
+    function showAlert(fiturName) { 
+        Swal.fire({ icon: 'info', title: 'Segera Hadir', text: `Modul ${fiturName} sedang dalam tahap pengembangan.` }); 
+    }
+</script>
+
+<script>
+// Membajak perintah print bawaan browser
+window.print = function() {
+    
+    // 1. Tutup otomatis modal/pop-up yang sedang terbuka
+    if (typeof bootstrap !== 'undefined') {
+        var modals = document.querySelectorAll('.modal.show');
+        modals.forEach(function(modalEl) {
+            var modalInstance = bootstrap.Modal.getInstance(modalEl);
+            if (modalInstance) modalInstance.hide();
+        });
+    }
+
+    // 2. Munculkan loading
+    Swal.fire({
+        title: 'Menyiapkan PDF...',
+        text: 'Dokumen sedang diproses untuk diunduh otomatis.',
+        allowOutsideClick: false,
+        showConfirmButton: false,
+        didOpen: () => { Swal.showLoading(); }
+    });
+
+    // 3. Fungsi Inti: Mengubah layar jadi PDF
+    function eksekusiAutoDownload() {
+        // Mengambil area laporan yang aktif di layar
+        var areaLaporan = document.querySelector('.page-view:not([style*="display: none"]) .card-body') || document.querySelector('.card-body') || document.body;
+        
+        var opsi = {
+            margin:       0.3,
+            filename:     'Laporan_HRIS_KOBE.pdf',
+            image:        { type: 'jpeg', quality: 0.98 },
+            html2canvas:  { scale: 2, useCORS: true },
+            jsPDF:        { unit: 'in', format: 'a4', orientation: 'landscape' }
+        };
+
+        html2pdf().set(opsi).from(areaLaporan).save().then(function() {
+            Swal.close();
+            Swal.fire({
+                icon: 'success',
+                title: 'Berhasil!',
+                text: 'File PDF telah masuk ke folder Download.',
+                timer: 2500,
+                showConfirmButton: false
+            });
+        });
+    }
+
+    // 4. Periksa library, panggil otomatis tanpa perlu ubah HTML
+    if (typeof html2pdf === 'undefined') {
+        var scriptPdf = document.createElement('script');
+        scriptPdf.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
+        scriptPdf.onload = eksekusiAutoDownload;
+        document.head.appendChild(scriptPdf);
+    } else {
+        eksekusiAutoDownload();
+    }
+};
+</script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script>
+// "true" di akhir script ini adalah kunci. Ini akan mencegat klik SEBELUM tombol lama Anda bekerja.
+document.addEventListener('click', function(e) {
+    
+    // Cari tahu apakah elemen yang diklik adalah tombol merah yang mengandung kata "PDF"
+    var tombolTarget = e.target.closest('.btn-danger');
+    
+    if (tombolTarget && tombolTarget.innerHTML.includes('PDF')) {
+        
+        // 1. BLOKIR TOTAL perintah window.print() atau executePrint() bawaan tombol
+        e.preventDefault();
+        e.stopPropagation();
+
+        // 2. Tutup Pop-up/Modal (jika Anda mencetak dari dalam Modal)
+        if (typeof bootstrap !== 'undefined') {
+            var modals = document.querySelectorAll('.modal.show');
+            modals.forEach(function(m) { bootstrap.Modal.getInstance(m)?.hide(); });
+        }
+
+        // 3. Tampilkan Loading
+        Swal.fire({
+            title: 'Mendownload PDF...',
+            text: 'File akan langsung tersimpan di perangkat Anda.',
+            allowOutsideClick: false,
+            showConfirmButton: false,
+            didOpen: () => { Swal.showLoading(); }
+        });
+
+        // 4. Ambil area tabel yang sedang tampil
+        var areaLaporan = document.querySelector('.card-body') || document.body;
+
+        // 5. Setting Kertas (A4, Landscape)
+        var setinganPDF = {
+            margin:       0.3,
+            filename:     'Laporan_HRIS_KOBE.pdf',
+            image:        { type: 'jpeg', quality: 0.98 },
+            html2canvas:  { scale: 2, useCORS: true },
+            jsPDF:        { unit: 'in', format: 'a4', orientation: 'landscape' }
+        };
+
+        // 6. Eksekusi Download
+        setTimeout(function() {
+            html2pdf().set(setinganPDF).from(areaLaporan).save().then(function() {
+                Swal.close();
+                Swal.fire({icon: 'success', title: 'Berhasil!', timer: 2000, showConfirmButton: false});
+            }).catch(function() {
+                Swal.close();
+                Swal.fire('Gagal', 'Terjadi kesalahan saat memproses file.', 'error');
+            });
+        }, 500);
+    }
+}, true); // <--- INI ADALAH PENYELAMAT KITA (Capture Phase)
+</script>
