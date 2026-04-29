@@ -1,0 +1,102 @@
+<style>
+    :root {
+        --primary-color: #1e293b; 
+        --accent-color: #10b981;  
+        --bg-color: #f8fafc;      
+        --text-color: #334155;    
+        --sidebar-width: 270px;
+    }
+    body { font-family: 'Inter', sans-serif; background-color: var(--bg-color); color: var(--text-color); overflow-x: hidden; }
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: #f1f5f9; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+    /* =========================================
+       NEW AESTHETIC SPLIT LOGIN STYLES
+       ========================================= */
+    .login-wrapper-new {
+        height: 100vh; width: 100vw;
+        /* Gradien Biru Tua Memudar yang Elegan */
+        background: linear-gradient(135deg, #0f172a 0%, #1e40af 100%); 
+        display: flex; align-items: center; justify-content: center;
+        position: fixed; top: 0; left: 0; z-index: 9999;
+    }
+    .login-split-card {
+        display: flex;
+        width: 100%; max-width: 1000px; height: 550px;
+        background: white; border-radius: 20px; overflow: hidden;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    }
+    
+    /* BAGIAN KIRI (FOTO & OVERLAY) */
+    .login-left {
+        flex: 1.2; position: relative;
+        /* GANTI URL DI BAWAH INI DENGAN LINK FOTO KANTOR ANDA */
+        background-image: url('https://images.unsplash.com/photo-1497366216548-37526070297c?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80');
+        background-size: cover; background-position: center;
+        display: flex; flex-direction: column; justify-content: center; align-items: center;
+        padding: 40px; text-align: center;
+    }
+    .login-overlay {
+        position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+        background: linear-gradient(135deg, rgba(30, 41, 59, 0.9) 0%, rgba(16, 185, 129, 0.75) 100%);
+        z-index: 1;
+    }
+    .login-left-content { position: relative; z-index: 2; padding: 20px; }
+    .slogan { font-size: 1.2rem; font-style: italic; letter-spacing: 2px; margin-top: 15px; }
+    .text-emerald { color: var(--accent-color); }
+
+    /* BAGIAN KANAN (FORM LOGIN) */
+    .login-right {
+        flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center;
+        padding: 40px 50px; background: white;
+    }
+    .elegant-input-group-dark .form-control { border-color: #cbd5e1; padding: 12px 15px; font-size: 0.95rem; }
+    .elegant-input-group-dark .form-control:focus { box-shadow: none; border-color: var(--accent-color); }
+    .elegant-input-group-dark .input-group-text { border-color: #cbd5e1; background: #f8fafc; padding: 12px 15px; }
+    
+    .btn-emerald {
+        background: var(--accent-color); border: none; color: white; border-radius: 8px; transition: all 0.3s;
+    }
+    .btn-emerald:hover { background: #059669; transform: translateY(-2px); color: white; box-shadow: 0 10px 20px rgba(16, 185, 129, 0.3); }
+
+    .fade-in { animation: fadeIn 1s ease-in-out; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+    @media (max-width: 768px) {
+        .login-split-card { flex-direction: column; height: auto; max-width: 400px; margin: 20px; }
+        .login-left { padding: 50px 20px; }
+        .login-right { padding: 40px 20px; }
+    }
+
+    /* =========================================
+       EXISTING STABIL STYLES
+       ========================================= */
+    .sidebar { width: var(--sidebar-width); height: 100vh; position: fixed; left: 0; top: 0; background-color: var(--primary-color); color: white; transition: all 0.3s; z-index: 1000; box-shadow: 4px 0 10px rgba(0,0,0,0.1); overflow-y: auto; padding-bottom: 30px;}
+    .sidebar-header { padding: 24px; font-size: 1.5rem; font-weight: 700; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; position: sticky; top: 0; background: var(--primary-color); z-index: 2;}
+    .sidebar-menu { list-style: none; padding: 0; margin-top: 10px; }
+    .sidebar-menu > li { padding: 12px 24px; cursor: pointer; transition: all 0.2s; font-size: 1.00rem; color: #cbd5e1; }
+    .sidebar-menu > li > div { display: flex; align-items: center; }
+    .sidebar-menu > li:hover, .sidebar-menu > li.active { background-color: rgba(255,255,255,0.05); color: var(--accent-color); border-left: 4px solid var(--accent-color); }
+    .submenu, .submenu-inner, .submenu-inner-plus { list-style: none; padding-left: 15px; font-size: 0.9rem; margin-top: 10px;}
+    .submenu li, .submenu-inner li, .submenu-inner-plus li { padding: 10px 15px; color: #94a3b8; border-left: 1px solid rgba(255,255,255,0.1); cursor: pointer;}
+    .submenu li:hover { color: var(--accent-color); }
+    .fs-xs { font-size: 0.7rem; }
+    .main-content { margin-left: var(--sidebar-width); transition: all 0.3s; min-height: 100vh; display: flex; flex-direction: column; }
+    .topbar { background: white; padding: 15px 30px; box-shadow: 0 2px 10px rgba(0,0,0,0.03); position: sticky; top: 0; z-index: 998; }
+    .content-area { padding: 20px 30px; flex-grow: 1; }
+    .glass-card { background: white; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); padding: 25px; margin-bottom: 20px; }
+    .table-responsive { width: 100%; overflow-x: auto; }
+    .table { white-space: nowrap; }
+    .table thead th { background-color: #f8fafc; color: #475569; padding: 15px; }
+    .table tbody td { padding: 15px; vertical-align: middle; }
+    .badge-status { padding: 6px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: 500; }
+    .status-tetap { background-color: #d1fae5; color: #065f46; }
+    .status-kontrak { background-color: #fef3c7; color: #92400e; }
+    .modal-detail-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; }
+    .detail-item { background: #f8fafc; padding: 12px; border-radius: 8px; border: 1px solid #e2e8f0; }
+    .detail-label { font-size: 0.75rem; color: #64748b; text-transform: uppercase; margin-bottom: 4px; font-weight: 600; }
+    .detail-value { font-weight: 500; color: #0f172a; word-break: break-word; }
+    @media (max-width: 768px) { .sidebar { transform: translateX(-100%); } .sidebar.show { transform: translateX(0); } .main-content { margin-left: 0; } }
+</style>
