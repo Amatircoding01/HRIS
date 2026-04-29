@@ -1,0 +1,94 @@
+<div id="view-Karyawan" class="page-view" style="display: none;">
+    <div class="glass-card">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h5 class="mb-0 fw-bold">Database Karyawan</h5>
+            <button class="btn btn-primary px-4" onclick="openTambahForm()">
+                <i class="fa-solid fa-plus me-2"></i> Tambah Baru
+            </button>
+        </div>
+        <div class="table-responsive">
+            <table id="karyawanTable" class="table table-hover w-100">
+                <thead>
+                    <tr>
+                        <th>NRPP</th><th>Nama Lengkap</th><th>Departemen</th><th>Jabatan</th><th>Status</th><th class="text-center">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="detailModal" tabindex="-1">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header bg-light">
+                <h5 class="modal-title fw-bold"><i class="fa-solid fa-id-card me-2 text-primary"></i> Detail Profil</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body bg-white p-4">
+                <div class="modal-detail-grid" id="detail-grid-container"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="formKaryawanModal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <form id="mainFormKaryawan">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title" id="formTitle">Form Karyawan</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <ul class="nav nav-pills mb-3" id="pills-tab" role="tablist">
+                        <li class="nav-item"><button type="button" class="nav-link active" data-bs-toggle="pill" data-bs-target="#tab-pribadi">Data Pribadi</button></li>
+                        <li class="nav-item"><button type="button" class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-pekerjaan">Pekerjaan</button></li>
+                        <li class="nav-item"><button type="button" class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-admin">Administrasi & Bank</button></li>
+                    </ul>
+                    <div class="tab-content mt-4">
+                        <div class="tab-pane fade show active" id="tab-pribadi">
+                            <div class="row g-3">
+                                <div class="col-md-4"><label class="form-label">Nama Lengkap</label><input type="text" name="Nama" class="form-control" required></div>
+                                <div class="col-md-4"><label class="form-label">NRPP</label><input type="text" name="NRPP" class="form-control" required id="form-nrpp"></div>
+                                <div class="col-md-4"><label class="form-label">No KTP</label><input type="text" name="No_KTP" class="form-control"></div>
+                                <div class="col-md-3"><label class="form-label">Tempat Lahir</label><input type="text" name="Tempat_Lahir" class="form-control"></div>
+                                <div class="col-md-3"><label class="form-label">Tanggal Lahir</label><input type="date" name="Tanggal_Lahir" class="form-control"></div>
+                                <div class="col-md-3"><label class="form-label">Jenis Kelamin</label><select name="Jenis_Kelamin" class="form-select"><option value="Laki-laki">Laki-laki</option><option value="Perempuan">Perempuan</option></select></div>
+                                <div class="col-md-3"><label class="form-label">Agama</label><input type="text" name="Agama" class="form-control"></div>
+                                <div class="col-md-6"><label class="form-label">Alamat Tinggal</label><textarea name="Alamat_Tinggal" class="form-control"></textarea></div>
+                                <div class="col-md-3"><label class="form-label">Pendidikan</label><input type="text" name="Pendidikan" class="form-control"></div>
+                                <div class="col-md-3"><label class="form-label">No Telepon</label><input type="text" name="No_Telepon" class="form-control"></div>
+                            </div>
+                        </div>
+                        <div class="tab-pane fade" id="tab-pekerjaan">
+                            <div class="row g-3">
+                                <div class="col-md-4"><label class="form-label">Departement</label><input type="text" name="Departement" class="form-control"></div>
+                                <div class="col-md-4"><label class="form-label">Section (Sub Menu)</label><input type="text" name="Section" class="form-control" placeholder="Contoh: FMC, Satelit, Service"></div>
+                                <div class="col-md-4"><label class="form-label">Jabatan</label><input type="text" name="JABATAN" class="form-control"></div>
+                                <div class="col-md-3"><label class="form-label">Status</label><select name="Status" class="form-select"><option value="Tetap">Tetap</option><option value="Kontrak">Kontrak</option><option value="Resign">Resign</option></select></div>
+                                <div class="col-md-3"><label class="form-label">Lokasi</label><input type="text" name="Lokasi" class="form-control"></div>
+                                <div class="col-md-3"><label class="form-label">Tgl Bergabung</label><input type="date" name="Tgl_Bergabung" class="form-control"></div>
+                                <div class="col-md-3"><label class="form-label">Email Kantor</label><input type="email" name="Email_Kantor" class="form-control"></div>
+                            </div>
+                        </div>
+                        <div class="tab-pane fade" id="tab-admin">
+                            <div class="row g-3">
+                                <div class="col-md-4"><label class="form-label">Nama Bank</label><input type="text" name="NAMA_BANK" class="form-control"></div>
+                                <div class="col-md-4"><label class="form-label">No Rekening (A/C)</label><input type="text" name="NO_A/C" class="form-control"></div>
+                                <div class="col-md-4"><label class="form-label">Cabang Bank</label><input type="text" name="CABANG" class="form-control"></div>
+                                <div class="col-md-4"><label class="form-label">NPWP</label><input type="text" name="NO_NPWP" class="form-control"></div>
+                                <div class="col-md-4"><label class="form-label">No KPJ (BPJS)</label><input type="text" name="No_KPJ" class="form-control"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-primary" id="btnSimpanKaryawan">Simpan Data</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
