@@ -1,0 +1,141 @@
+<div class="modal fade" id="modalPrintLaporan" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-dark text-white">
+                <h5 class="modal-title"><i class="fa-solid fa-print me-2"></i> Cetak / Ekspor Laporan</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="mb-4">
+                    <label class="form-label fw-bold">Pilih Sumber Data Laporan:</label>
+                    <select id="print-sumber" class="form-select border-primary" style="font-size: 1.1rem;">
+                        <option value="Data Karyawan">Data Karyawan Master</option>
+                        <option value="Monitoring Klaim">Semua Pengajuan Klaim (Global)</option>
+                        <option disabled>──────────</option>
+                        <option value="Klaim Persalinan">Khusus: Klaim Persalinan</option>
+                        <option value="Klaim Kehamilan">Khusus: Klaim Kehamilan</option>
+                        <option value="Klaim Kacamata">Khusus: Klaim Kacamata</option>
+                        <option value="Klaim Gigi">Khusus: Klaim Gigi</option>
+                        <option value="Klaim KB">Khusus: Klaim KB</option>
+                    </select>
+                </div>
+                
+                <p class="text-muted small mb-4"><i class="fa-solid fa-circle-info text-info me-1"></i> File PDF akan <b>langsung diunduh otomatis</b> ke perangkat Anda tanpa membuka print dialog browser.</p>
+                
+                <div class="d-grid gap-2">
+                    <button class="btn btn-success btn-lg" onclick="executePrint('excel')"><i class="fa-solid fa-file-excel me-2"></i> Download Excel (.xlsx)</button>
+                    <button type="button" class="btn btn-danger" onclick="downloadTanpaPreview()">
+    <i class="fa-solid fa-file-pdf me-1"></i> PDF Otomatis
+</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script>
+function downloadPDFLangsung() {
+    // Matikan print preview browser
+    if (window.stop) window.stop();
+
+    // Tutup popup modal agar tidak ikut terfoto
+    var modalElemen = document.getElementById('modalPrintLaporan');
+    if (modalElemen) {
+        var modalInstance = bootstrap.Modal.getInstance(modalElemen) || new bootstrap.Modal(modalElemen);
+        modalInstance.hide();
+    }
+
+    // Munculkan indikator loading
+    Swal.fire({
+        title: 'Memproses Laporan...',
+        text: 'File PDF sedang dibuat dan akan langsung terunduh.',
+        allowOutsideClick: false,
+        showConfirmButton: false,
+        didOpen: () => { Swal.showLoading(); }
+    });
+
+    // Ambil target tabel di latar belakang (Biasanya ada di dalam div class="card-body")
+    var areaDataLaporan = document.querySelector('.card-body') || document.body;
+
+    // Setting PDF: Kertas A4, memanjang ke samping (landscape)
+    var setinganPDF = {
+        margin:       0.3,
+        filename:     'Laporan_HRIS_KOBE_' + new Date().getTime() + '.pdf',
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { scale: 2, useCORS: true },
+        jsPDF:        { unit: 'in', format: 'a4', orientation: 'landscape' }
+    };
+
+    // Eksekusi Download
+    setTimeout(function() {
+        html2pdf().set(setinganPDF).from(areaDataLaporan).save().then(function() {
+            Swal.close();
+            Swal.fire({
+                icon: 'success',
+                title: 'Selesai!',
+                text: 'File PDF berhasil diunduh.',
+                timer: 2500,
+                showConfirmButton: false
+            });
+        }).catch(function(err) {
+            Swal.close();
+            Swal.fire('Gagal', 'Terjadi kesalahan sistem saat membuat PDF.', 'error');
+        });
+    }, 500); 
+}
+</script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+<script>
+function downloadTanpaPreview() {
+    // 1. Mencekik paksa fungsi window.print bawaan browser
+    if (window.stop) window.stop(); 
+
+    // 2. Munculkan Loading SweetAlert
+    Swal.fire({
+        title: 'Mendownload PDF...',
+        text: 'File sedang diproses. Mohon tunggu.',
+        allowOutsideClick: false,
+        showConfirmButton: false,
+        didOpen: () => { Swal.showLoading(); }
+    });
+
+    // 3. Sembunyikan area tombol sebentar agar tidak ikut terfoto ke dalam PDF
+    var tombolPDF = document.querySelector('.btn-danger');
+    var areaTombol = tombolPDF ? tombolPDF.parentElement : null;
+    if (areaTombol) areaTombol.style.display = 'none';
+
+    // 4. Ambil area tabel laporan (Biasanya di dalam div class "card-body")
+    var areaLaporan = document.querySelector('.card-body') || document.body;
+
+    // 5. Setting Kertas PDF (A4, Landscape/Tidur)
+    var settingan = {
+        margin:       0.3,
+        filename:     'Laporan_Absensi_KOBE.pdf',
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { scale: 2, useCORS: true },
+        jsPDF:        { unit: 'in', format: 'a4', orientation: 'landscape' }
+    };
+
+    // 6. Eksekusi konversi layar ke PDF lalu Langsung Download
+    html2pdf().set(settingan).from(areaLaporan).save().then(function() {
+        // Kembalikan tombolnya agar muncul lagi di layar setelah selesai
+        if (areaTombol) areaTombol.style.display = '';
+        
+        Swal.close();
+        Swal.fire({
+            icon: 'success', 
+            title: 'Berhasil!', 
+            text: 'File PDF sudah masuk ke komputer Anda.', 
+            timer: 2000, 
+            showConfirmButton: false
+        });
+    }).catch(function(err) {
+        if (areaTombol) areaTombol.style.display = '';
+        Swal.close();
+        Swal.fire('Gagal', 'Terjadi kesalahan sistem saat membuat PDF.', 'error');
+    });
+}
+</script>
