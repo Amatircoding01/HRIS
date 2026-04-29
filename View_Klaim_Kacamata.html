@@ -1,0 +1,77 @@
+<div class="modal fade" id="formKlaimKacamata" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title"><i class="fa-solid fa-glasses me-2"></i> Form Klaim Kacamata</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <form id="mainFormKacamata" onsubmit="processSubmitKacamata(event)">
+                    <div class="row mb-3 bg-light p-3 rounded border">
+                        <div class="col-md-8">
+                            <label class="form-label fw-bold">Masukkan NRPP Karyawan</label>
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="kcm-nrpp" required placeholder="Contoh: KBE-1001">
+                                <button type="button" class="btn btn-dark" onclick="cekDataKaryawanKacamata()">Cek Data</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="area-data-kcm" style="display: none;">
+                        <div class="row mb-4">
+                            <div class="col-md-4"><strong>Nama:</strong> <span id="kcm-nama"></span></div>
+                            <div class="col-md-4"><strong>Gol:</strong> <span id="kcm-gol" class="badge bg-primary"></span></div>
+                            <div class="col-md-4"><strong>Dept:</strong> <span id="kcm-dept"></span></div>
+                        </div>
+
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-12">
+                                <label class="form-label fw-bold">Nama Pasien (Karyawan / Keluarga)</label>
+                                <input type="text" id="kcm-pasien" class="form-control border-primary" placeholder="Contoh: Budi (Karyawan) atau Ani (Istri)" required>
+                            </div>
+                        </div>
+
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Jenis Klaim</label>
+                                <select id="kcm-jenis" class="form-select" onchange="gantiJenisKacamata()" required>
+                                    <option value="">-- Pilih --</option>
+                                    <option value="Lensa Saja">Lensa Saja</option>
+                                    <option value="Frame Saja">Frame Saja</option>
+                                    <option value="Lensa dan Frame">Lensa dan Frame</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Tanggal Kwitansi</label>
+                                <input type="date" id="kcm-tanggal" class="form-control" required>
+                            </div>
+                        </div>
+
+                        <div id="box-input-lensa" class="p-3 border rounded mb-2 bg-light" style="display:none;">
+                            <label class="fw-bold">Nominal Kwitansi Lensa</label>
+                            <input type="number" id="kcm-kwi-lensa" class="form-control mb-2" onkeyup="hitungKacamata()">
+                            <label class="small text-success">Disetujui (Max Rp 350.000)</label>
+                            <input type="number" id="kcm-setuju-lensa" class="form-control bg-white" readonly>
+                        </div>
+
+                        <div id="box-input-frame" class="p-3 border rounded mb-3 bg-light" style="display:none;">
+                            <label class="fw-bold">Nominal Kwitansi Frame</label>
+                            <input type="number" id="kcm-kwi-frame" class="form-control mb-2" onkeyup="hitungKacamata()">
+                            <label class="small text-success">Disetujui (Max Rp 500.000)</label>
+                            <input type="number" id="kcm-setuju-frame" class="form-control bg-white" readonly>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Keterangan Optik / RS</label>
+                            <textarea id="kcm-keterangan" class="form-control" rows="2" required></textarea>
+                        </div>
+                        
+                        <div class="text-end">
+                            <button type="submit" class="btn btn-primary px-4">Submit Klaim</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
